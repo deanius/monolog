@@ -61,16 +61,23 @@
       };
 
       const App = AntaresProtocol.agent;
+      App.currentLine = ""
 
       const defaultPreventedSubmits = DOM.submits().pipe(
-        tap(e => e.preventDefault())
+        tap(e => e.preventDefault()),
+        map(() => App.currentLine)
       )
       const changedValues = DOM.changes().pipe(
-        map(e => e.target.value)
+        map(e => e.target.value),
+        tap(line => App.currentLine = line)
       )
       App.subscribe(changedValues, {type: 'line/change'})
       App.subscribe(defaultPreventedSubmits, { type: 'lines/add'})
       App.addFilter(({ action }) => console.log(action.type, action.payload))
+      App.on("lines/add", () => DOM.clear())
+      App.on("lines/add", ({ action }) => {
+        DOM.addToLines(action.payload)
+      })
 
       window.DOM = DOM;
       window.App = App;
