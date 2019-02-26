@@ -36,6 +36,7 @@
     <script>
       var { fromEvent, of, concat } = rxjs;
       const { tap, map } = rxjs.operators;
+      const { ajax } = rxjs.ajax;
       const { after } = AntaresProtocol;
       /* Interesting DOM Events: #monolog keyup, form submit */
       /* Exposed DOM mutation methods: clear, addToList */
@@ -87,6 +88,24 @@
         DOM.addToLines(action.payload)
       })
       /** End App Definition **/
+
+      /** Begin Server Agent **/
+      const Server = {
+        addLine(line) {
+          return ajax({
+            method: "POST",
+            url: "https://jsonplaceholder.typicode.com/posts",
+            body: { line }
+          })
+        }
+      }
+      // Upon an event of type 'lines/add'
+      App.on("lines/add", ({ action }) => {
+        return Server.addLine(action.payload).pipe(
+          map(r => r.response)
+        )
+      }, { type: "ajax/complete" })
+      /** End Server Agent **/
 
 
       window.DOM = DOM;
