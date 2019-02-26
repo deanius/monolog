@@ -3,30 +3,28 @@
   <head>
     <title>Rx-Helper Event-Driven Apps Step-By-Step</title>
     <meta charset="utf-8" />
-    <link href="http://fonts.googleapis.com/css?family=Roboto" rel="stylesheet" type="text/css" />
-    <link href="https://monologue-js.herokuapp.com/style.css" rel="stylesheet" type="text/css" />
+    <link
+      href="http://fonts.googleapis.com/css?family=Roboto"
+      rel="stylesheet"
+      type="text/css"
+    />
+    <link
+      href="https://monologue-js.herokuapp.com/style.css"
+      rel="stylesheet"
+      type="text/css"
+    />
     <script src="https://unpkg.com/rxjs/bundles/rxjs.umd.js"></script>
     <script src="https://unpkg.com/antares-protocol/dist/antares-protocol.js"></script>
-    <script>
-    /* Interesting DOM Events: #monolog keyup, form submit */
-    /* Exposed DOM mutation methods: clear, addToList */
-    const DOM = {
-      clear(){
-        document.getElementById("monolog").value = ""
-      },
-      addToLines(line){
-        document.getElementById("lines").innerHTML = `
-          <li>${line}</li>
-        ` + document.getElementById("lines").innerHTML
-      }
-    }
-    </script>
   </head>
   <body>
     <div id="new-status">
       <h2>New line</h2>
-      <form action="">
-        <input type="text" id="monolog" placeholder="Ex: To be, or not to be..." /><br />
+      <form id="form" action="">
+        <input
+          type="text"
+          id="monolog"
+          placeholder="Ex: To be, or not to be..."
+        /><br />
         <input type="submit" value="Post" />
       </form>
     </div>
@@ -35,5 +33,39 @@
       <h2>Monolog Lines</h2>
       <ul id="lines"></ul>
     </div>
+    <script>
+      var { fromEvent } = rxjs;
+
+      /* Interesting DOM Events: #monolog keyup, form submit */
+      /* Exposed DOM mutation methods: clear, addToList */
+      const DOM = {
+        monolog: document.getElementById("monolog"),
+        lines: document.getElementById("lines"),
+        form: document.getElementById("form"),
+        clear() {
+          this.monolog.value = "";
+        },
+        addToLines(line) {
+          this.lines.innerHTML =
+            `
+              <li>${line}</li>
+            ` + this.lines.innerHTML;
+        },
+        changes() {
+          return fromEvent(this.monolog, "keyup");
+        },
+        submits() {
+          return fromEvent(this.form, "submit");
+        }
+      };
+
+      const App = AntaresProtocol.agent;
+
+      App.subscribe(DOM.changes(), {type: 'line/change'})
+      App.addFilter(({ action }) => console.log(action.type, action.payload))
+
+      window.DOM = DOM;
+      window.App = App;
+    </script>
   </body>
 </html>
