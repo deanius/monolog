@@ -36,6 +36,7 @@
     <script>
       var { fromEvent } = rxjs;
       var { map, tap } = rxjs.operators;
+      const App = AntaresProtocol.agent;
 
       /* Interesting DOM Events: #monolog keyup, form submit */
       /* Exposed DOM mutation methods: clear, addToList */
@@ -63,6 +64,10 @@
           )
         }
       };
+
+      App.addFilter(({ action }) => console.log(action.type, action.payload))
+      App.subscribe(DOM.submits(), { type: "DOM/submit" })
+      App.subscribe(DOM.changes(), { type: "DOM/change" })
     </script>
   </body>
 </html>
