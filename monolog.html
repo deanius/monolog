@@ -35,7 +35,7 @@
     </div>
     <script>
       var { fromEvent } = rxjs;
-      const { tap } = rxjs.operators;
+      const { tap, map } = rxjs.operators;
 
       /* Interesting DOM Events: #monolog keyup, form submit */
       /* Exposed DOM mutation methods: clear, addToList */
@@ -65,8 +65,10 @@
       const defaultPreventedSubmits = DOM.submits().pipe(
         tap(e => e.preventDefault())
       )
-
-      App.subscribe(DOM.changes(), {type: 'line/change'})
+      const changedValues = DOM.changes().pipe(
+        map(e => e.target.value)
+      )
+      App.subscribe(changedValues, {type: 'line/change'})
       App.subscribe(defaultPreventedSubmits, { type: 'lines/add'})
       App.addFilter(({ action }) => console.log(action.type, action.payload))
 
