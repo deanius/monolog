@@ -68,6 +68,10 @@
       App.addFilter(({ action }) => console.log(action.type, action.payload))
       App.subscribe(DOM.submits(), { type: "DOM/submit" })
       App.subscribe(DOM.changes(), { type: "DOM/change" })
+      const result = App.process({ type: "started!"})
+      result.completed.then(() => {
+        console.log("Started up!")
+      })
     </script>
   </body>
 </html>
