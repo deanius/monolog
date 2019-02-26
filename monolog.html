@@ -48,10 +48,10 @@
           this.monolog.value = "";
         },
         addToLines(line) {
-          this.lines.innerHTML =
+          this.lines.innerHTML = this.lines.innerHTML +
             `
               <li>${line}</li>
-            ` + this.lines.innerHTML;
+            `;
         },
         changes() {
           return fromEvent(this.monolog, "keyup");
@@ -100,7 +100,7 @@
           })
         }
       }
-      
+
       // Upon an event of type 'lines/add'
       App.on("lines/add", ({ action }) => {
         return Server.addLine(action.payload).pipe(
