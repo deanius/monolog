@@ -35,6 +35,7 @@
     </div>
     <script>
       var { fromEvent } = rxjs;
+      var { map } = rxjs.operators;
 
       /* Interesting DOM Events: #monolog keyup, form submit */
       /* Exposed DOM mutation methods: clear, addToList */
@@ -52,7 +53,9 @@
             `;
         },
         changes() {
-          return fromEvent(this.monolog, "keyup")
+          return fromEvent(this.monolog, "keyup").pipe(
+            map(e => e.target.value)
+          )
         },
         submits() {
           return fromEvent(this.form, "submit")
