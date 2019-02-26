@@ -34,7 +34,7 @@
       <ul id="lines"></ul>
     </div>
     <script>
-      var { fromEvent } = rxjs;
+      var { fromEvent, of } = rxjs;
       const { tap, map } = rxjs.operators;
 
       /* Interesting DOM Events: #monolog keyup, form submit */
@@ -62,6 +62,9 @@
 
       const App = AntaresProtocol.agent;
       App.currentLine = ""
+      App.startup = function (){
+        this.subscribe(of('Kraken', 'Thor', 'Zeus'), {type: "lines/add"})
+      }
 
       const defaultPreventedSubmits = DOM.submits().pipe(
         tap(e => e.preventDefault()),
@@ -78,6 +81,7 @@
       App.on("lines/add", ({ action }) => {
         DOM.addToLines(action.payload)
       })
+      
 
       window.DOM = DOM;
       window.App = App;
