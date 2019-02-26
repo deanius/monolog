@@ -34,9 +34,9 @@
       <ul id="lines"></ul>
     </div>
     <script>
-      var { fromEvent, of } = rxjs;
+      var { fromEvent, of, concat } = rxjs;
       const { tap, map } = rxjs.operators;
-
+      const { after } = AntaresProtocol;
       /* Interesting DOM Events: #monolog keyup, form submit */
       /* Exposed DOM mutation methods: clear, addToList */
       const DOM = {
@@ -60,10 +60,15 @@
         }
       };
 
-      const App = AntaresProtocol.agent;
+      /** Begin App Agent **/
+      const App = AntaresProtocol.agent;      
       App.currentLine = ""
       App.startup = function (){
-        this.subscribe(of('Kraken', 'Thor', 'Zeus'), {type: "lines/add"})
+        const deities = concat(
+          of('Kraken', 'Thor', 'Zeus'),
+          after(2500, 'SpongeBob')
+        )
+        this.subscribe(deities, {type: "lines/add"})
       }
 
       const defaultPreventedSubmits = DOM.submits().pipe(
@@ -81,10 +86,12 @@
       App.on("lines/add", ({ action }) => {
         DOM.addToLines(action.payload)
       })
-      
+      /** End App Definition **/
+
 
       window.DOM = DOM;
       window.App = App;
+      App.startup();
     </script>
   </body>
 </html>
