@@ -84,8 +84,9 @@
       App.subscribe(defaultPreventedSubmits, { type: 'lines/add'})
       App.addFilter(({ action }) => console.log(action.type, action.payload))
       App.on("lines/add", () => DOM.clear())
-      App.on("lines/add", ({ action }) => {
-        DOM.addToLines(action.payload)
+      App.on("ajax/complete", ({ action }) => {
+        const { line } = action.payload
+        DOM.addToLines(line)
       })
       /** End App Definition **/
 
