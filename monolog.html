@@ -94,6 +94,12 @@
         );
       }, {type: "AJAX/complete"})
 
+      App.on("AJAX/complete", ({ action }) => {
+        const { line, id } = action.payload
+        DOM.clear()
+        DOM.addToLines(`${line} (${id})`)
+      })
+
       App.subscribe(DOM.submits(), { type: "DOM/submit" })
       App.subscribe(DOM.changes(), { type: "DOM/change" })
 
