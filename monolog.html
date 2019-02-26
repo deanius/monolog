@@ -7,7 +7,20 @@
     <link href="https://monologue-js.herokuapp.com/style.css" rel="stylesheet" type="text/css" />
     <script src="https://unpkg.com/rxjs/bundles/rxjs.umd.js"></script>
     <script src="https://unpkg.com/antares-protocol/dist/antares-protocol.js"></script>
-    <script></script>
+    <script>
+    /* Interesting DOM Events: #monolog keyup, form submit */
+    /* Exposed DOM mutation methods: clear, addToList */
+    const DOM = {
+      clear(){
+        document.getElementById("monolog").value = ""
+      },
+      addToLines(line){
+        document.getElementById("lines").innerHTML = `
+          <li>${line}</li>
+        ` + document.getElementById("lines").innerHTML
+      }
+    }
+    </script>
   </head>
   <body>
     <div id="new-status">
