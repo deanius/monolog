@@ -100,12 +100,16 @@
           })
         }
       }
+      
       // Upon an event of type 'lines/add'
       App.on("lines/add", ({ action }) => {
         return Server.addLine(action.payload).pipe(
           map(r => r.response)
         )
-      }, { type: "ajax/complete" })
+      }, {
+        type: "ajax/complete",
+        concurrency: "serial"
+      })
       /** End Server Agent **/
 
 
