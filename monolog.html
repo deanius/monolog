@@ -34,10 +34,11 @@
       <ul id="lines"></ul>
     </div>
     <script>
-      var { fromEvent } = rxjs;
+      var { fromEvent, of } = rxjs;
       var { map, tap } = rxjs.operators;
+      var { ajax } = rxjs.ajax;
       const App = AntaresProtocol.agent;
-      const { after } = AntaresProtocol;
+      const { after, randomId } = AntaresProtocol;
 
       /* Interesting DOM Events: #monolog keyup, form submit */
       /* Exposed DOM mutation methods: clear, addToList */
@@ -81,6 +82,17 @@
         return after(1000, () => console.log("..."))
       })
 
+      App.on("DOM/submit", ({ action }) => {
+        const line = action.payload;
+        App.process({type: "AJAX/start"});
+        return ajax({
+          method: "POST",
+          url: "https://jsonplaceholder.typicode.com/posts",
+          body: { line }
+        }).pipe(
+          map(r => Object.assign(r.response, {id: randomId()}))
+        );
+      }, {type: "AJAX/complete"})
 
       App.subscribe(DOM.submits(), { type: "DOM/submit" })
       App.subscribe(DOM.changes(), { type: "DOM/change" })
