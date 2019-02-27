@@ -1,5 +1,7 @@
 # The Monolog App, Implemented in Rx-Helper
 
+Quick Links: [Live App](http://www.deanius.com/monolog.html) | [Monolog Repo](https://github.com/deanius/monolog)  | [Rx Helper Repo](https://github.com/deanius/rx-helper)
+
 To help you understand how Rx-Helper helps you write apps with:
 
 - Decoupled code
