@@ -34,7 +34,7 @@
       <ul id="lines"></ul>
     </div>
     <script>
-      var { fromEvent, of } = rxjs;
+      var { fromEvent, of, Observable } = rxjs;
       var { map, tap } = rxjs.operators;
       var { ajax } = rxjs.ajax;
       const App = AntaresProtocol.agent;
@@ -96,6 +96,14 @@
         type: "AJAX/complete",
         concurrency: "serial"
       })
+
+      App.on("AJAX/complete", ({ action, context }) => {
+        const { line } = action.payload;
+        const { speechSynthesis, SpeechSynthesisUtterance } = window;
+
+        var msg = new SpeechSynthesisUtterance(`Added ${line} to list`);
+        speechSynthesis.speak(msg);
+      });
 
       App.on("AJAX/complete", ({ action }) => {
         const { line, id } = action.payload
