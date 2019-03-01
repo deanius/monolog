@@ -37,6 +37,7 @@
       var { fromEvent } = rxjs;
       var { map, tap } = rxjs.operators;
       const App = AntaresProtocol.agent;
+      const { after } = AntaresProtocol;
 
       /* Interesting DOM Events: #monolog keyup, form submit */
       /* Exposed DOM mutation methods: clear, addToList */
@@ -66,8 +67,15 @@
       };
 
       App.addFilter(({ action }) => console.log(action.type, action.payload))
+      App.on("started!", () => {
+        console.log("Starting...")
+        return after(1000, () => console.log("..."))
+      })
+
+
       App.subscribe(DOM.submits(), { type: "DOM/submit" })
       App.subscribe(DOM.changes(), { type: "DOM/change" })
+
       const result = App.process({ type: "started!"})
       result.completed.then(() => {
         console.log("Started up!")
