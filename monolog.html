@@ -92,7 +92,10 @@
         }).pipe(
           map(r => Object.assign(r.response, {id: randomId()}))
         );
-      }, {type: "AJAX/complete"})
+      }, {
+        type: "AJAX/complete",
+        concurrency: "serial"
+      })
 
       App.on("AJAX/complete", ({ action }) => {
         const { line, id } = action.payload
