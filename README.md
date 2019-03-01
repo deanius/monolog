@@ -28,11 +28,13 @@ Let's elaborate on each of these points:
 - A websocket's events
 - Events a DOM can raise
 
-Having an explicit reference to "all events over time that are keyups on the #monolog element" allows us to return this reference from a function, much like returning a Promise for a single future event. This way our application can be split into a WHAT and a HOW, where the Observable is a stream of WHAT, upon which you'll attach consequences in the HOW section.
+Having an explicit reference to "all events over time that are keyups on the #monolog element" allows us to return this reference from a function, much like returning a Promise for a single future event. This allows our app to use different strategies, such as executing them serially / one-after-the-other like will be detailed in point 4.
+
+But the design benefit of Observables lies in how our application can be split into a WHAT and a HOW section, connected by Observables, where the Observable is a stream of WHAT, upon which you'll attach consequences in the HOW section. Programs built this way are highly decoupled, and test-drivable.
 
 **3)** In regular DOM event handling, an error in one handler can prevent other handlers from firing. This risk of data loss is the consequence of the way the DOM calls them in a loop, synchronously, without any error handling. The Rx-Helper Agent instead treats each handler like a separate job box processing a message off of a queue - one job box is not affected directly by another's failure. This is generally more robust.
 
-**4)** In regular DOM event handling, if events are produced too rapidly, multiple event handlers may be running for the same event type simultaneously. When resources, or ordering semantics are important, it may be better to queue up handling, terminate previous or long-running ones, or block new handlers from firing until a previous has completed. In Rx-Heler, each handler can be parameterized by a different strategy— parallel, serial, cutoff, or block— without rewriting the code, and whether the work to be done is synchronous or async!
+**4)** In regular DOM event handling, if events are produced too rapidly, multiple event handlers may be running for the same event type simultaneously. When resources, or ordering semantics are important, it may be better to queue up handling, terminate previous or long-running ones, or block new handlers from firing until a previous has completed. In Rx-Helper, each handler can be parameterized by a different strategy— parallel, serial, cutoff, or block (mute)— without rewriting the code, and whether the work to be done is synchronous or async!
 
 Now, let's check out how this plays out in the actual Monolog application.
 
@@ -47,15 +49,17 @@ The monolog app is a TODO list style app with the following specifications:
 1. Upon submit, the text from the input should be cleared.
 1. Upon submit, the text should be sent to an AJAX endpoint.
 
+![](http://www.deanius.com/Monolog-2.6.gif)
+
 # The Code
 
 The commits required to build this are laid out below with commentary.
 
 First we'll talk about encapsulating the DOM.
 
-Second, we'll build an App that controls it out of an `rx-helper` `agent` we'll call App.
+Second, we'll build an App that controls it out of an Rx-Helper `agent` that we'll call App.
 
-Lastly, we'll tune the app's concurrency and show how the app can grow in functionality safely with minimal fear of new features breaking old ones.
+Lastly, we'll tune the app's concurrency and show how `App` can grow in functionality safely with minimal fear of new features breaking old ones, and maximum testability.
 
 # The DOM
 
@@ -93,29 +97,26 @@ In order to be able implement requirements 4 & 5, we'll need to write to the DOM
 
 Now's a good time to group all the things we care about the DOM - the elements we listen to events from or change, the changes we want to do - into a single object.
 
-```diff
-     </div>
-+    <script>
-+      /* Interesting DOM Events: #monolog keyup, form submit */
-+      /* Exposed DOM mutation methods: clear, addToList */
-+      const DOM = {
-+        monolog: document.getElementById("monolog"),
-+        lines: document.getElementById("lines"),
-+        form: document.getElementById("form"),
-+        clear() {
-+          this.monolog.value = "";
-+        },
-+        addToLines(line) {
-+          this.lines.innerHTML = this.lines.innerHTML +
-+            `
-+              <li>${line}</li>
-+            `;
-+        }
-+      };
-+
-+      window.DOM = DOM;
-+    </script>
-   </body>
+```js
+/* Interesting DOM Events: #monolog keyup, form submit */
+/* Exposed DOM mutation methods: clear, addToList */
+const DOM = {
+  monolog: document.getElementById("monolog"),
+  lines: document.getElementById("lines"),
+  form: document.getElementById("form"),
+  clear() {
+    this.monolog.value = "";
+  },
+  addToLines(line) {
+    this.lines.innerHTML =
+      this.lines.innerHTML +
+      `
+        <li>${line}</li>
+      `;
+  }
+};
+
+window.DOM = DOM;
 ```
 
 We can try these out by calling `DOM.clear()` in the console for example.
@@ -124,23 +125,20 @@ We can try these out by calling `DOM.clear()` in the console for example.
 
 ## 1.2 Expose Event Streams
 
-```diff
-     <script>
-+      var { fromEvent } = rxjs;
-+
-       /* Interesting DOM Events: #monolog keyup, form submit */
-       /* Exposed DOM mutation methods: clear, addToList */
-       const DOM = {
+```js
+var { fromEvent } = rxjs;
 
-+        }
-+        changes() {
-+          return fromEvent(this.monolog, "keyup")
-+        },
-+        submits() {
-+          return fromEvent(this.form, "submit")
-         }
-       };
-     </script>
+/* Interesting DOM Events: #monolog keyup, form submit */
+/* Exposed DOM mutation methods: clear, addToList */
+const DOM = {
+  // ...
+  changes() {
+    return fromEvent(this.monolog, "keyup");
+  },
+  submits() {
+    return fromEvent(this.form, "submit");
+  }
+};
 ```
 
 In the old way of doing things, you'd call `elem.addEventListener(h, 'click')` with some handler function `h`.
@@ -237,12 +235,11 @@ As we saw, to process many events, you pass an Observable (whose values becomes 
 
 But, what if you just want to process a single event, manually? If you just have a single Flux Standard Action object with `type` and `payload`(optional), you can call `process`.
 
-```diff
-     App.subscribe(DOM.changes(), { type: "DOM/change" })
-+      const result = App.process({ type: "started!"})
-+      result.completed.then(() => {
-+        console.log("Started up!")
-+      })
+```js
+const result = App.process({ type: "started!" });
+result.completed.then(() => {
+  console.log("Started up!");
+});
 ```
 
 The return value you get has a `completed` Promise, on which you can attach handlers.
@@ -256,25 +253,18 @@ The lesson here is that the code that calls `process` does not, by default know 
 Code always grows more complex. But Rx-Helper allows your code to accomodate even challenging changes. We add an `on("started!"` handler to run whenever an action of type `started!` is seen, via `process` or `subscribe`.
 
 ```diff
-+      const { after } = AntaresProtocol;
++  const { after } = AntaresProtocol;
 
-       /* Interesting DOM Events: #monolog keyup, form submit */
-       /* Exposed DOM mutation methods: clear, addToList */
-@@ -66,8 +67,15 @@ <h2>Monolog Lines</h2>
-       };
-
-       App.addFilter(({ action }) => console.log(action.type, action.payload))
-+      App.on("started!", () => {
-+        console.log("Starting...")
-+        return after(1000, () => console.log("..."))
-+      })
+   App.addFilter(({ action }) => console.log(action.type, action.payload))
++  App.on("started!", () => {
++    console.log("Starting...")
++    return after(1000, () => console.log("..."))
++  })
 +
-+
-      const result = App.process({ type: "started!"})
-      result.completed.then(() => {
-        console.log("Started up!")
-      })
-
+   const result = App.process({ type: "started!"})
+   result.completed.then(() => {
+     console.log("Started up!")
+   })
 ```
 
 The `after()` function calls its function argument after a delay. Its return value is an Observable, and it must be subscribed to, but by returning it from our `on` handler, the agent subscribes to it, and knows to factor the time it takes to complete into the `completed` Promise we created in the previous step.
@@ -290,23 +280,23 @@ We don't need a fancy framework to give us a model - we just declare an object w
 Then we use a `filter`, run upon each event of type `DOM/change`, that calls `setLine` to keep that property in sync with the DOM. As a result, after every keyup in the input, `App.model.line` will have the current value of the input.
 
 ```diff
-         submits() {
-           return fromEvent(this.form, "submit").pipe(
--            tap(e => e.preventDefault())
-+            tap(e => e.preventDefault()),
-+            map(() => App.model.line)
-           )
-         }
-       };
+      submits() {
+        return fromEvent(this.form, "submit").pipe(
+-         tap(e => e.preventDefault())
++         tap(e => e.preventDefault()),
++         map(() => App.model.line)
+        )
+      }
+    };
 
-+      App.model = {
-+        line: "",
-+        setLine(line) {
-+          this.line = line
-+        }
-+      }
-       App.addFilter(({ action }) => console.log(action.type, action.payload))
-+      App.filter("DOM/change", ({ action })=> App.model.setLine(action.payload))
++   App.model = {
++     line: "",
++     setLine(line) {
++       this.line = line
++     }
++   }
+    App.addFilter(({ action }) => console.log(action.type, action.payload))
++   App.filter("DOM/change", ({ action })=> App.model.setLine(action.payload))
 
 ```
 
