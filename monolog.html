@@ -106,6 +106,8 @@
       const result = App.process({ type: "started!"})
       result.completed.then(() => {
         console.log("Started up!")
+
+        App.subscribe(of('Kraken', 'Thor', 'Zeus'), { type: "DOM/submit" })
       })
     </script>
   </body>
