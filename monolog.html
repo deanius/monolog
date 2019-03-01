@@ -61,12 +61,21 @@
         },
         submits() {
           return fromEvent(this.form, "submit").pipe(
-            tap(e => e.preventDefault())
+            tap(e => e.preventDefault()),
+            map(() => App.model.line)
           )
         }
       };
 
+      App.model = {
+        line: "",
+        setLine(line) {
+          this.line = line
+        }
+      }
       App.addFilter(({ action }) => console.log(action.type, action.payload))
+      App.filter("DOM/change", ({ action })=> App.model.setLine(action.payload))
+
       App.on("started!", () => {
         console.log("Starting...")
         return after(1000, () => console.log("..."))
