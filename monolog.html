@@ -34,6 +34,8 @@
       <ul id="lines"></ul>
     </div>
     <script>
+      var { fromEvent } = rxjs;
+
       /* Interesting DOM Events: #monolog keyup, form submit */
       /* Exposed DOM mutation methods: clear, addToList */
       const DOM = {
@@ -48,10 +50,14 @@
             `
               <li>${line}</li>
             `;
+        },
+        changes() {
+          return fromEvent(this.monolog, "keyup")
+        },
+        submits() {
+          return fromEvent(this.form, "submit")
         }
       };
-
-      window.DOM = DOM;
     </script>
   </body>
 </html>
