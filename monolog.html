@@ -3,17 +3,27 @@
   <head>
     <title>Rx-Helper Event-Driven Apps Step-By-Step</title>
     <meta charset="utf-8" />
-    <link href="http://fonts.googleapis.com/css?family=Roboto" rel="stylesheet" type="text/css" />
-    <link href="https://monologue-js.herokuapp.com/style.css" rel="stylesheet" type="text/css" />
+    <link
+      href="http://fonts.googleapis.com/css?family=Roboto"
+      rel="stylesheet"
+      type="text/css"
+    />
+    <link
+      href="https://monologue-js.herokuapp.com/style.css"
+      rel="stylesheet"
+      type="text/css"
+    />
     <script src="https://unpkg.com/rxjs/bundles/rxjs.umd.js"></script>
-    <script src="https://unpkg.com/antares-protocol/dist/antares-protocol.js"></script>
-    <script></script>
   </head>
   <body>
     <div id="new-status">
       <h2>New line</h2>
-      <form action="">
-        <input type="text" id="monolog" placeholder="Ex: To be, or not to be..." /><br />
+      <form id="form" action="">
+        <input
+          type="text"
+          id="monolog"
+          placeholder="Ex: To be, or not to be..."
+        /><br />
         <input type="submit" value="Post" />
       </form>
     </div>
@@ -22,5 +32,104 @@
       <h2>Monolog Lines</h2>
       <ul id="lines"></ul>
     </div>
+    <script type="module">
+      import {
+        channel,
+        trigger,
+        listen as on,
+        after,
+        randomId,
+      } from "./polyrhythm.1.0.0.development.js";
+
+      var { fromEvent, of, Observable } = rxjs;
+      var { map, tap } = rxjs.operators;
+      var { ajax } = rxjs.ajax;
+
+      const App = channel;
+      /* Interesting DOM Events: #monolog keyup, form submit */
+      /* Exposed DOM mutation methods: clear, addToList */
+      const DOM = {
+        monolog: document.getElementById("monolog"),
+        lines: document.getElementById("lines"),
+        form: document.getElementById("form"),
+        clear() {
+          this.monolog.value = "";
+        },
+        addToLines(line) {
+          this.lines.innerHTML =
+            this.lines.innerHTML +
+            `
+              <li>${line}</li>
+            `;
+        },
+        changes() {
+          return fromEvent(this.monolog, "keyup").pipe(
+            map((e) => e.target.value)
+          );
+        },
+        submits() {
+          return fromEvent(this.form, "submit").pipe(
+            tap((e) => e.preventDefault()),
+            map(() => App.model.line)
+          );
+        },
+      };
+
+      App.model = {
+        line: "",
+        setLine(line) {
+          this.line = line;
+        },
+      };
+      App.filter(true, ({ type, payload }) => console.log(type, payload));
+      App.filter("DOM/change", ({ payload }) => App.model.setLine(payload));
+
+      App.listen("started!", () => {
+        console.log("Starting...");
+        return after(1000, () => console.log("..."));
+      });
+
+      App.listen(
+        "DOM/submit",
+        ({ payload }) => {
+          const line = payload;
+          App.trigger("AJAX/start");
+          return ajax({
+            method: "POST",
+            url: "https://jsonplaceholder.typicode.com/posts",
+            body: { line },
+          }).pipe(map((r) => Object.assign(r.response, { id: randomId() })));
+        },
+        {
+          trigger: { next: "AJAX/complete" },
+          mode: "serial",
+        }
+      );
+
+      App.listen("AJAX/complete", ({ payload }) => {
+        const { line } = payload;
+        const { speechSynthesis, SpeechSynthesisUtterance } = window;
+
+        var msg = new SpeechSynthesisUtterance(`Added ${line} to list`);
+        speechSynthesis.speak(msg);
+      });
+
+      App.listen("AJAX/complete", ({ payload }) => {
+        const { line, id } = payload;
+        DOM.clear();
+        DOM.addToLines(`${line} (${id})`);
+      });
+
+      DOM.submits().subscribe((e) => App.trigger("DOM/submit"));
+      DOM.changes().subscribe((e) => App.trigger("DOM/change"));
+
+      const result = App.trigger("started");
+      Promise.resolve().then(() => {
+        console.log("Started up!");
+        ["Kraken", "Thor", "Zeus"].forEach((hero) =>
+          App.trigger("DOM/submit", hero)
+        );
+      });
+    </script>
   </body>
 </html>
