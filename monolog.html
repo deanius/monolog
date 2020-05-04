@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
   <head>
-    <title>Rx-Helper Event-Driven Apps Step-By-Step</title>
+    <title>Polyrhythm: Event-Driven Apps Step-By-Step</title>
     <meta charset="utf-8" />
     <link
       href="http://fonts.googleapis.com/css?family=Roboto"
@@ -21,7 +21,7 @@
       <form id="form" action="">
         <input
           type="text"
-          id="monolog"
+          id="monolog-line"
           placeholder="Ex: To be, or not to be..."
         /><br />
         <input type="submit" value="Post" />
@@ -45,49 +45,53 @@
       var { map, tap } = rxjs.operators;
       var { ajax } = rxjs.ajax;
 
-      const App = channel;
+      const App = {
+        model: {
+          line: "",
+          setLine(line) {
+            this.line = line;
+          },
+        },
+        trigger(...args) {
+          channel.trigger(...args);
+        },
+        // preprocess events
+        filter(...args) {
+          channel.filter(...args);
+        },
+        listen(...args) {
+          channel.listen(...args);
+        },
+      };
+
       /* Interesting DOM Events: #monolog keyup, form submit */
-      /* Exposed DOM mutation methods: clear, addToList */
+      /* Exposed DOM mutation methods: clearLine, addToList */
       const DOM = {
-        monolog: document.getElementById("monolog"),
+        line: document.getElementById("monolog-line"),
         lines: document.getElementById("lines"),
         form: document.getElementById("form"),
-        clear() {
-          this.monolog.value = "";
+        clearLine() {
+          this.line.value = "";
         },
         addToLines(line) {
-          this.lines.innerHTML =
-            this.lines.innerHTML +
-            `
+          this.lines.innerHTML += `
               <li>${line}</li>
             `;
         },
-        changes() {
-          return fromEvent(this.monolog, "keyup").pipe(
-            map((e) => e.target.value)
-          );
-        },
-        submits() {
-          return fromEvent(this.form, "submit").pipe(
-            tap((e) => e.preventDefault()),
-            map(() => App.model.line)
-          );
-        },
+      };
+      DOM.line.onchange = ({ target }) => {
+        App.trigger("DOM/change", target.value);
+      };
+      DOM.form.onsubmit = (event) => {
+        event.preventDefault();
+        App.trigger("DOM/submit", App.model.line);
       };
 
-      App.model = {
-        line: "",
-        setLine(line) {
-          this.line = line;
-        },
-      };
+      // log all events
       App.filter(true, ({ type, payload }) => console.log(type, payload));
-      App.filter("DOM/change", ({ payload }) => App.model.setLine(payload));
 
-      App.listen("started!", () => {
-        console.log("Starting...");
-        return after(1000, () => console.log("..."));
-      });
+      // keep our model up to date
+      App.filter("DOM/change", ({ payload }) => App.model.setLine(payload));
 
       App.listen(
         "DOM/submit",
@@ -107,28 +111,27 @@
       );
 
       App.listen("AJAX/complete", ({ payload }) => {
-        const { line } = payload;
-        const { speechSynthesis, SpeechSynthesisUtterance } = window;
-
-        var msg = new SpeechSynthesisUtterance(`Added ${line} to list`);
-        speechSynthesis.speak(msg);
-      });
-
-      App.listen("AJAX/complete", ({ payload }) => {
         const { line, id } = payload;
-        DOM.clear();
+        DOM.clearLine();
         DOM.addToLines(`${line} (${id})`);
       });
 
-      DOM.submits().subscribe((e) => App.trigger("DOM/submit"));
-      DOM.changes().subscribe((e) => App.trigger("DOM/change"));
-
-      const result = App.trigger("started");
       Promise.resolve().then(() => {
         console.log("Started up!");
         ["Kraken", "Thor", "Zeus"].forEach((hero) =>
           App.trigger("DOM/submit", hero)
         );
+      });
+
+      //Bonus
+      App.listen("AJAX/complete", ({ payload }) => {
+        const { line } = payload;
+        const { speechSynthesis, SpeechSynthesisUtterance } = window;
+
+        var msg = new SpeechSynthesisUtterance(
+          `Added ${line} to the beautiful, ever-growing list`
+        );
+        speechSynthesis.speak(msg);
       });
     </script>
   </body>
