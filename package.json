@@ -1,0 +1,20 @@
+{
+  "name": "monolog",
+  "version": "1.0.0",
+  "description": "Quick Links: [Live App](http://www.deanius.com/monolog.html) | [Monolog Repo](https://github.com/deanius/monolog) | [polyrhythm Repo](https://github.com/deanius/polyrhythm) | [Original Monolog App](https://github.com/kimjoar/writings/blob/master/published/understanding-backbone.md)",
+  "main": "polyrhythm.1.0.0.development.js",
+  "scripts": {
+    "start": "serve .& open http://localhost:5000/monolog.html"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://gist.github.com/71e66b205fec55da7b7f8a01789d769c.git"
+  },
+  "keywords": [],
+  "author": "Dean Radcliffe",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://gist.github.com/71e66b205fec55da7b7f8a01789d769c"
+  },
+  "homepage": "https://gist.github.com/71e66b205fec55da7b7f8a01789d769c"
+}
